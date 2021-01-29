@@ -1,0 +1,27 @@
+{
+  "pk_token": "YOUR PK TOKEN HERE",
+  "system_id": "YOUR SYS ID HERE",
+  "system_members": [
+    {
+      "name": "Switched Out",
+      "pk_id": "",
+      "qmk_id": 0
+    },
+    {
+      "name": "SYS MEMBER NAME HERE",
+      "pk_id": "SYS MEMBER ID HERE",
+      "qmk_id": 1
+    },
+    {
+      "name": "SYS MEMBER NAME HERE",
+      "pk_id": "SYS MEMBER ID HERE",
+      "qmk_id": 2
+    },
+    {
+      "name": "SYS MEMBER NAME HERE",
+      "pk_id": "SYS MEMBER ID HERE",
+      "qmk_id": 3
+    }
+  ],
+  "pk_gateway_url": "PK GATEWAY URL HERE"
+}

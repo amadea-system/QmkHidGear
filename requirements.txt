@@ -1,0 +1,4 @@
+hid~=1.0.4
+requests~=2.25.1
+pypiwin32~=223
+pywin32~=300
