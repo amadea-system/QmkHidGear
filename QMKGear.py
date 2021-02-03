@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 toaster = ToastNotifier()
 
 amadea_system_map: Optional['AmadeaSystemMap'] = None
+keyboards = []
 
 
 @dataclass
@@ -101,6 +102,33 @@ def handle_switch_fronter(qmk: QMKKeyboard, qmk_member_id):
         print(f"Switch Failed!!!")
 
 
+def handle_activity_ping(pinging_qmk: QMKKeyboard):
+    """
+    Sends a pong to all keyboards except the keyboard that sent the ping.
+    Uses the global var 'Keyboards'
+    """
+
+    print(f"Activity ping callback: from {pinging_qmk.keyboard_type}")
+    # TODO: Have this callback be part of a class that holds 'Keyboards' so we dont have to use a Global.
+
+    # We got an activity ping from a device. Send pong to all other connected QMK devices.
+    for _keyboard in keyboards:
+        if _keyboard != pinging_qmk:
+            try:
+                _keyboard.send_activity_ping()
+            except KeyboardDisconnected:
+                pass
+
+
+def send_current_fronter(_keyboards: List[QMKKeyboard]):
+    """Sends the current fronter to all keyboards in passed _keyboards"""
+    for _keyboard in _keyboards:
+        try:
+            _keyboard.send_current_fronter(fronters_qmk_id)
+        except KeyboardDisconnected:
+            log.info(f"{_keyboard.keyboard_type} Disconnected")
+
+
 def poll_for_new_commands(_keyboards: List):
     for i in range(20):
         for _keyboard in _keyboards:
@@ -134,13 +162,14 @@ if __name__ == '__main__':
 
     command_callbacks = {
         Commands.PC_Notify_Layer_Change: handle_layer_change,
-        Commands.PC_Switch_Fronter: handle_switch_fronter
+        Commands.PC_Switch_Fronter: handle_switch_fronter,
+        Commands.PC_Activity_Ping: handle_activity_ping,
     }
 
     lily = QMKKeyboard(QMKKeyboard.LILY58, command_callbacks)
     navi = QMKKeyboard(QMKKeyboard.NAVI10, command_callbacks)
 
-    keyboards = [lily, navi]
+    keyboards.extend([lily, navi])
 
     count = 0
     while 1:
@@ -166,13 +195,10 @@ if __name__ == '__main__':
             fronters_qmk_id = 0
             log.info(f"Sending Switched Out to keyboards.")
 
-        # --- Send New Data To Connected Keyboards
-        for keyboard in keyboards:
-            try:
-                keyboard.send_current_fronter(fronters_qmk_id)
-            except KeyboardDisconnected:
-                log.info(f"{keyboard.keyboard_type} Disconnected")
+        # --- Send New Data To Connected Keyboards --
+        send_current_fronter(keyboards)
 
+        # -- Check for new incoming commands packets --
         poll_for_new_commands_fast(keyboards)
         time.sleep(0.5)
 
