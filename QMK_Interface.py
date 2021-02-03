@@ -8,7 +8,7 @@ import os
 import math
 
 from enum import Enum
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, SupportsBytes
 from dataclasses import dataclass, field
 
 
@@ -92,12 +92,14 @@ class Commands:
     KB_Set_Fronter = 1            # Send the current fronter to the Keyboard
     KB_Set_All_RGB_LEDs = 2
     KB_Set_RGB_LEDs = 3
+    KB_Activity_Ping = 4
 
     # CMDs Sent To PC  (Start at 120)
     PC_Raw_Debug_Msg = 120
     PC_Debug_Msg = 121
     PC_Switch_Fronter = 122       # Use PK API To switch fronters
     PC_Notify_Layer_Change = 123  # Notification from keyboard that the current active layer has changed
+    PC_Activity_Ping = 124
 
 
 class QMKKeyboard:
@@ -138,6 +140,13 @@ class QMKKeyboard:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.disconnect()
+
+    def __eq__(self, other):
+        if isinstance(other, QMKKeyboard):
+            # Todo: Use unique ID incase we ever have multiple of the same keyboard connected.
+            if self.vendor_id == other.vendor_id and self.product_id == other.product_id:
+                return True
+        return False
 
     def open(self):
 
@@ -184,18 +193,31 @@ class QMKKeyboard:
 
         return data_packet
 
-    def send_command(self, command_type: int, command_data: List[int]) -> int:
+    def send_command(self, command_type: int, command_data: Optional[List[int]]) -> int:
         """
         Sends a command to a connected QMK Device.
+
+        Raises: KeyboardDisconnected, DataPacketTooLarge
 
         :param command_type:
         :param command_data:
         :return: The number of bytes sent.
         """
+
+        if command_data is None:
+            command_data = [0]
+
         data_packet = self.construct_command_packet(command_type, command_data)
         return self.write(data_packet)
 
     def write(self, data_to_write: List[int]) -> int:
+        """
+        Sends a properly formatted command packet to the keyboard.
+
+        Raises: KeyboardDisconnected, DataPacketTooLarge
+        :param data_to_write: The command packet that should be sent to the keyboard.
+        :return:
+        """
 
         if len(data_to_write) > self.packet_size:
             raise DataPacketTooLarge(f"Data packet len: {len(data_to_write)}")
@@ -214,11 +236,20 @@ class QMKKeyboard:
             self.connected = False
             raise KeyboardDisconnected("Could not write data because the Keyboard is disconnected")
 
-    def read(self, timeout: int = 100, length: int = 32):
+    def read(self, timeout: int = 100, length: int = 32) -> List[int]:
+        """
+        Read incoming data packet from the keyboard.
+
+        Raises: KeyboardDisconnected
+        :param timeout: Default: 100
+        :param length: How many bytes to read. Default: 32
+        :return: The data read.
+        """
         if self.qmk is not None:
             try:
                 data = self.qmk.read(length, timeout)
-                return list(bytearray(data))
+                ret_data = list(bytearray(data))
+                return ret_data
             except hid.HIDException:
                 self.connected = False
                 raise KeyboardDisconnected("Could not read data because the Keyboard is disconnected")
@@ -229,6 +260,8 @@ class QMKKeyboard:
     def send_current_fronter(self, qmk_system_id: int):
         """
         Sends the current fronter to the connected QMK keyboard
+
+        Raises: KeyboardDisconnected, DataPacketTooLarge
         :param qmk_system_id:
         :return:
         """
@@ -238,9 +271,20 @@ class QMKKeyboard:
         # _read_bytes = self.read()
         # self.parse_commands(_read_bytes)
 
+    def send_activity_ping(self):
+        """
+        Sends an activity ping to the connected QMK keyboard
+
+        Raises: KeyboardDisconnected, DataPacketTooLarge
+        """
+        log.info(f"Sending activity ping to {self.keyboard_type}.")
+        self.send_command(Commands.KB_Activity_Ping, None)
+
     def set_RGB_LEDs(self, led_values: List[HSV], first_led = 0):
         """
         Sends the current fronter to the connected QMK keyboard
+
+        Raises: KeyboardDisconnected, DataPacketTooLarge
         :param led_values: List of LED values. Each Led value HSV Class
         :return:
         """
@@ -325,7 +369,9 @@ class QMKKeyboard:
 
             command_data = command_data[:data_length]
 
+            # Convert the split up uint8's back into their original data type
             layer_mask = int.from_bytes(command_data, byteorder='little', signed=False)
+
             log.debug(f"Layer Mask raw: {command_data}")
             log.info("Layer Mask bin: {0:b}".format(layer_mask))
             log.debug(f"Layer Mask int: {layer_mask}")
@@ -334,6 +380,14 @@ class QMKKeyboard:
                 self.callbacks[command_id](self, layer_mask)
 
             command_info = {'command': command_id, 'data': layer_mask}
+            return command_info
+
+        elif command_id == Commands.PC_Activity_Ping:
+            log.info(f"Received Activity Ping from {self.keyboard_type}")
+            command_info = {'command': command_id, 'data': None}
+
+            if command_id in self.callbacks:
+                self.callbacks[command_id](self)
             return command_info
 
         else:
