@@ -108,7 +108,7 @@ def handle_activity_ping(pinging_qmk: QMKKeyboard):
     Uses the global var 'Keyboards'
     """
 
-    print(f"Activity ping callback: from {pinging_qmk.keyboard_type}")
+    log.info(f"Activity ping callback: from {pinging_qmk.keyboard_type}")
     # TODO: Have this callback be part of a class that holds 'Keyboards' so we dont have to use a Global.
 
     # We got an activity ping from a device. Send pong to all other connected QMK devices.
