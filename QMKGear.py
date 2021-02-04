@@ -126,7 +126,7 @@ def send_current_fronter(_keyboards: List[QMKKeyboard]):
         try:
             _keyboard.send_current_fronter(fronters_qmk_id)
         except KeyboardDisconnected:
-            log.info(f"{_keyboard.keyboard_type} Disconnected")
+            pass
 
 
 def poll_for_new_commands(_keyboards: List):
@@ -171,6 +171,8 @@ if __name__ == '__main__':
 
     keyboards.extend([lily, navi])
 
+    log.info(f"QMKGear Started!")
+
     count = 0
     while 1:
 
@@ -189,11 +191,11 @@ if __name__ == '__main__':
 
         if len(amadea_front.members) > 0:
             fronters_qmk_id = amadea_system_map.get_qmkid_by_pkid(amadea_front.members[0].hid)
-            log.info(f"Sending {amadea_front.members[0].name} to keyboards.")
+            # log.info(f"Sending {amadea_front.members[0].name} as the current fronter.")
         else:
             # No one is in front
             fronters_qmk_id = 0
-            log.info(f"Sending Switched Out to keyboards.")
+            # log.info(f"Sending Switched Out as the current fronter.")
 
         # --- Send New Data To Connected Keyboards --
         send_current_fronter(keyboards)

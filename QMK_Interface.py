@@ -158,6 +158,7 @@ class QMKKeyboard:
 
         self.qmk: Optional[hid.Device] = None
         self.connected = False
+        self.search_count = 0  # How many times have we failed to find/connect to keyboard
         self.callbacks = callbacks or {}
 
     def __enter__(self):
@@ -173,7 +174,7 @@ class QMKKeyboard:
                 return True
         return False
 
-    def open(self):
+    def _open(self):
 
         # get list of HID devices connected to this computer
         enumerated_devices = hid.enumerate()
@@ -194,10 +195,16 @@ class QMKKeyboard:
 
     def connect(self):
         try:
-            self.open()
+            self._open()
+            self.search_count = 0
+            log.info(f"Connected to {self.keyboard_type}!")
             return True
         except CouldNotFindKeyboard:
-            log.warning(f"Could not find {self.keyboard_type}.")
+            self.search_count += 1
+            if self.search_count <= 1:
+                log.warning(f"Could not find {self.keyboard_type}.")
+            else:
+                log.debug(f"Could not find {self.keyboard_type}.")
             return False
 
     def disconnect(self):
@@ -290,11 +297,8 @@ class QMKKeyboard:
         :param qmk_system_id:
         :return:
         """
-        log.info(f"Sending current fronter, {SystemMembers(qmk_system_id).name}, to {self.keyboard_type}.")
+        # log.info(f"Sending current fronter, {SystemMembers(qmk_system_id).name}, to {self.keyboard_type}.")
         self.send_command(Commands.KB_Set_Fronter, [qmk_system_id])
-        # time.sleep(0.01)
-        # _read_bytes = self.read()
-        # self.parse_commands(_read_bytes)
 
     def send_activity_ping(self):
         """
@@ -302,7 +306,7 @@ class QMKKeyboard:
 
         Raises: KeyboardDisconnected, DataPacketTooLarge
         """
-        log.info(f"Sending activity ping to {self.keyboard_type}.")
+        # log.info(f"Sending activity ping to {self.keyboard_type}.")
         self.send_command(Commands.KB_Activity_Ping, None)
 
     def set_RGB_LEDs(self, led_values: List[HSV], first_led = 0):
@@ -352,7 +356,7 @@ class QMKKeyboard:
         if len(received_data) == 0:
             return None  # No data was received
 
-        log.info(f"{self.keyboard_type} Received: {received_data}")
+        log.debug(f"{self.keyboard_type} Received: {received_data}")
 
         if len(received_data) < 3:
             raise CorruptResponse  # Data packet will be >= to 3 bytes
@@ -376,7 +380,7 @@ class QMKKeyboard:
 
         elif command_id == Commands.PC_Switch_Fronter:
             new_fronter_qmk_id = command_data[0]
-            log.info(f"Switch Fronter CMD! Switching fronter to {SystemMembers(new_fronter_qmk_id)}")
+            # log.info(f"Switch Fronter CMD! Switching fronter to {SystemMembers(new_fronter_qmk_id)}")
             command_info = {'command': command_id, 'data': new_fronter_qmk_id}
 
             if command_id in self.callbacks:
@@ -408,7 +412,7 @@ class QMKKeyboard:
             return command_info
 
         elif command_id == Commands.PC_Activity_Ping:
-            log.info(f"Received Activity Ping from {self.keyboard_type}")
+            # log.info(f"Received Activity Ping from {self.keyboard_type}")
             command_info = {'command': command_id, 'data': None}
 
             if command_id in self.callbacks:
