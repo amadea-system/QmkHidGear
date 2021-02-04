@@ -58,9 +58,22 @@ class HSV:
 
 
 # The following dicts hold keyboard specific data.
+@dataclass
+class KeyboardInfo:
+    vendor_id: int
+    product_id: int
 
-lily58_kb_info = {
-    'layer_names': [
+    layer_names: List[str]
+    led_num: int
+
+    led_split: Optional[List[int]] = None
+    packet_size: int = 32
+
+
+lily58_kb_info = KeyboardInfo(
+    vendor_id=0x04D8,
+    product_id=0xEB2D,
+    layer_names=[
         'QWERTY',     # 0
         "LOWER",      # 1
         "RAISE",      # 2
@@ -68,21 +81,32 @@ lily58_kb_info = {
         "GAME_WASD",  # 4
         "GAME_ESDF"   # 5
     ],
-    "led_num": 12,
-    "led_split": [6, 6]
-}
+    led_num=12,
+    led_split=[6, 6]
+)
 
-
-navi10_kb_info = {
-    'layer_names': [
+navi10_kb_info = KeyboardInfo(
+    vendor_id=0xFEED,
+    product_id=0x0000,
+    layer_names=[
         'Base',      # 0
         "Function",  # 1
         "Media",     # 2
         "RGB"        # 3
     ],
-    "led_num": 10,
-    "led_split": None
-}
+    led_num=10
+)
+
+
+nibble_kb_info = KeyboardInfo(
+    vendor_id=0x6E61,
+    product_id=0x6060,
+    layer_names=[
+        'QWERTY',    # 0
+        "Function"   # 1
+    ],
+    led_num=10
+)
 
 
 class Commands:
@@ -105,25 +129,26 @@ class Commands:
 class QMKKeyboard:
     LILY58 = "lily58"
     NAVI10 = "navi10"
+    NIBBLE = "nibble"
 
     def __init__(self, keyboard_type, callbacks=None):
         self.keyboard_type = keyboard_type
         if keyboard_type == self.LILY58:
             # Lily58
             self.kb_info = lily58_kb_info
-            self.vendor_id = 0x04D8
-            self.product_id = 0xEB2D
-            self.packet_size = 32
-
         elif keyboard_type == self.NAVI10:
             # Navi10
             self.kb_info = navi10_kb_info
-            self.vendor_id = 0xFEED
-            self.product_id = 0x0000
-            self.packet_size = 32
+        elif keyboard_type == self.NIBBLE:
+            # Nibble
+            self.kb_info = nibble_kb_info
 
         else:
             raise ValueError(f"{keyboard_type} is not yet supported!")
+
+        self.vendor_id = self.kb_info.vendor_id
+        self.product_id = self.kb_info.product_id
+        self.packet_size = self.kb_info.packet_size
 
         # Default Usage Page & Usage values for the HID Endpoint of most QMK devices
         # These can be overridden in your keyboard's config.h in the keyboard's main directory by redefining the values:
