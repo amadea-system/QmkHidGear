@@ -168,8 +168,10 @@ if __name__ == '__main__':
 
     lily = QMKKeyboard(QMKKeyboard.LILY58, command_callbacks)
     navi = QMKKeyboard(QMKKeyboard.NAVI10, command_callbacks)
+    nibble = QMKKeyboard(QMKKeyboard.NIBBLE, command_callbacks)
 
-    keyboards.extend([lily, navi])
+
+    keyboards.extend([lily, navi, nibble])
 
     log.info(f"QMKGear Started!")
 
