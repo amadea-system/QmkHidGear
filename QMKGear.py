@@ -170,7 +170,6 @@ if __name__ == '__main__':
     navi = QMKKeyboard(QMKKeyboard.NAVI10, command_callbacks)
     nibble = QMKKeyboard(QMKKeyboard.NIBBLE, command_callbacks)
 
-
     keyboards.extend([lily, navi, nibble])
 
     log.info(f"QMKGear Started!")
@@ -205,7 +204,3 @@ if __name__ == '__main__':
         # -- Check for new incoming commands packets --
         poll_for_new_commands_fast(keyboards)
         time.sleep(0.5)
-
-
-
-
