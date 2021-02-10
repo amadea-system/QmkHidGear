@@ -47,13 +47,13 @@ class AmadeaSystemMap:
 
         return AmadeaSystemMap(config['system_id'], sys_mems)
 
-    def get_qmkid_by_pkid(self, pk_id:str):
+    def get_qmkid_by_pkid(self, pk_id: str):
         for member in self.members:
             if member.pk_id == pk_id:
                 return member.qmk_id
         raise KeyError
 
-    def get_pkid_by_qmkid(self, qmk_id:int):
+    def get_pkid_by_qmkid(self, qmk_id: int):
         for member in self.members:
             if member.qmk_id == qmk_id:
                 return member.pk_id
